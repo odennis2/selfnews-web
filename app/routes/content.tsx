@@ -1,63 +1,143 @@
-
-import type { Article } from "~/model/article";
 import ContentCard from "~/views/content-card/contentCard";
+import { getArticles } from "~/services/articles.server";
+import {
+  mainFeeds,
+  regionalFeeds,
+} from "~/constants/feeds";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "components/ui/dropdown-menu";
+
+import { Button } from "components/ui/button";
+import { cn } from "lib/utils";
+
+import { useSearchParams } from "react-router";
 import type { Route } from "./+types/content";
 
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
 
+  const feed = url.searchParams.get("feed");
 
-const mockArticles: Article[] = [
-  {
-    title: "Regeringen fremlægger ny plan for grøn omstilling",
-    link: "https://www.dr.dk/nyheder/indland/mock-1",
-    pubDate: "2026-08-01T08:15:00Z",
-    creator: "DR Nyheder",
-    contentSnippet:
-      "Regeringen præsenterede i dag en ny klimaplan, der skal reducere udledningen med 30 procent inden 2030.",
-    categories: ["Indland", "Politik"],
-    imageUrl: "https://avatar.vercel.sh/mock1",
-  },
-  {
-    title: "Storbrand i København under kontrol",
-    link: "https://www.dr.dk/nyheder/indland/mock-2",
-    pubDate: "2026-08-01T06:42:00Z",
-    creator: "DR Nyheder",
-    contentSnippet:
-      "Brandvæsenet melder, at branden på et lager i Nordhavn nu er under kontrol efter flere timers indsats.",
-    categories: ["Indland"],
-    imageUrl: "https://avatar.vercel.sh/mock2",
-  },
-  {
-    title: "Dansk landshold klar til EM-kvalifikation",
-    link: "https://www.dr.dk/sporten/mock-3",
-    pubDate: "2026-07-31T19:30:00Z",
-    creator: "DR Sporten",
-    contentSnippet:
-      "Landstræneren udtager truppen til de kommende kvalifikationskampe, hvor flere unge spillere får debut.",
-    categories: ["Sporten"],
-    imageUrl: "https://avatar.vercel.sh/mock3",
-  },
-];
+  const articles = await getArticles(
+    feed || undefined,
+  );
 
-export async function loader() {
-  const articles: Article[] = mockArticles//await getArticles(); required setup, pocketbase to fetch and store articles serve through cloudlfare tunnel for static ip
-  return { articles };
+  return {
+    articles,
+    selectedFeed: feed ?? null,
+  };
 }
 
-export default function Content({ loaderData }: Route.ComponentProps) {
-  const { articles } = loaderData;
+export default function Content({
+  loaderData,
+}: Route.ComponentProps) {
+  const {
+    articles,
+    selectedFeed,
+  } = loaderData;
+
+  const [, setSearchParams] = useSearchParams();
+
+  function selectFeed(feed: string) {
+    if (feed === "all") {
+      setSearchParams({});
+      return;
+    }
+
+    setSearchParams({
+      feed,
+    });
+  }
 
   return (
-    <div className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
-      {articles.map((article: { link: any; title: any; contentSnippet: any; imageUrl: any; categories: any[]; }) => (
-        <ContentCard
-          key={article.link}
-          title={article.title}
-          description={article.contentSnippet ?? ""}
-          imageUrl={article.imageUrl ?? "https://avatar.vercel.sh/placeholder"}
-          link={article.link}
-          badge={article.categories?.[0]}
-        />
-      ))}
+    <div className="space-y-6 p-6">
+
+      {/* Feed navigation */}
+      <div className="w-full overflow-x-auto">
+        <nav className="flex w-max min-w-full items-center gap-2 border-b pb-2 justify-center">
+
+          {/* All */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => selectFeed("all")}
+            className={cn(
+              "shrink-0 rounded-full",
+              !selectedFeed &&
+                "bg-accent text-accent-foreground",
+            )}
+          >
+            Alle
+          </Button>
+
+          {/* Main feeds */}
+          {mainFeeds.map((feed) => (
+            <Button
+              key={feed}
+              variant="ghost"
+              size="sm"
+              onClick={() => selectFeed(feed)}
+              className={cn(
+                "shrink-0 rounded-full",
+                selectedFeed === feed &&
+                  "bg-accent text-accent-foreground",
+              )}
+            >
+              {feed}
+            </Button>
+          ))}
+
+        {/* Regional feeds */}
+          {regionalFeeds.map((feed) => (
+            <Button
+              key={feed}
+              variant="ghost"
+              size="sm"
+              onClick={() => selectFeed(feed)}
+              className={cn(
+                "shrink-0 rounded-full",
+                selectedFeed === feed &&
+                  "bg-accent text-accent-foreground",
+              )}
+            >
+              {feed}
+            </Button>
+          ))}
+
+        </nav>
+      </div>
+
+      {/* Article grid */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {articles.map((article) => (
+          <ContentCard
+            key={article.link}
+            title={article.title}
+            description={
+              article.contentSnippet ?? ""
+            }
+            imageUrl={
+              article.imageUrl ??
+              "https://avatar.vercel.sh/placeholder"
+            }
+            link={article.link}
+            badge={article.categories?.[0]}
+          />
+        ))}
+      </div>
+
+      {/* Empty state */}
+      {articles.length === 0 && (
+        <div className="py-12 text-center text-muted-foreground">
+          Ingen artikler fundet.
+        </div>
+      )}
     </div>
   );
 }

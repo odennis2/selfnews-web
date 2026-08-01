@@ -6,8 +6,8 @@ import { Button } from "components/ui/button";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "SelfNews" },
+    { name: "description", content: "Welcome to SelfNews" },
   ];
 }
 
@@ -19,7 +19,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <div>
       <main className="flex flex-col">
-        <section className="py-16 sm:py-20 lg:py-28">
+        <section className="sm:py-20 lg:py-28">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-4 text-center sm:px-6 lg:px-8">
             <Badge variant="outline">Based on DRTV RSS Feed</Badge>
 
