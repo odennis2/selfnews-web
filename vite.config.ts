@@ -9,11 +9,12 @@ export default defineConfig({
     cloudflare({ viteEnvironment: { name: "ssr" } }),
     tailwindcss(),
     reactRouter(),
+    tailwindcss(),
   ],
   resolve: {
     tsconfigPaths: true,
     alias: {
-      "@": path.resolve(__dirname, "./"),
+      "@": path.resolve(__dirname, "."),
     },
   },
 });
