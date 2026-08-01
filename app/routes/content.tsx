@@ -21,17 +21,34 @@ import type { Route } from "./+types/content";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-
   const feed = url.searchParams.get("feed");
 
-  const articles = await getArticles(
-    feed || undefined,
+  return getArticles(
+    feed && feed !== "all"
+      ? feed
+      : undefined,
   );
+}
 
-  return {
-    articles,
-    selectedFeed: feed ?? null,
-  };
+export function ErrorBoundary({
+  error,
+}: Route.ErrorBoundaryProps) {
+  console.error(error);
+
+  return (
+    <div className="flex min-h-100 items-center justify-center p-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold">
+          Noget gik galt
+        </h1>
+
+        <p className="mt-2 text-muted-foreground">
+          Vi kunne ikke indlæse nyhederne.
+          Prøv at genindlæse siden.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function Content({

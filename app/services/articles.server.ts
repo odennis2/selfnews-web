@@ -1,5 +1,3 @@
-// app/services/articles.server.ts
-
 import PocketBase from "pocketbase";
 import type { Article } from "~/model/article";
 
@@ -20,39 +18,53 @@ function createPocketBase() {
     process.env.POCKETBASE_URL ?? "http://127.0.0.1:8090",
   );
 
-  // Important for Cloudflare Workers
   pb.autoCancellation(false);
 
   return pb;
 }
 
-export async function getArticles(
-  feedName?: string,
-): Promise<Article[]> {
+export async function getArticles(feedName?: string): Promise<{
+  articles: Article[];
+  unavailable: boolean;
+}> {
   const pb = createPocketBase();
 
-  const result = await pb
-    .collection("articles")
-    .getList<PocketBaseArticle>(1, 30, {
-      sort: "-pubDate",
-      ...(feedName
-        ? {
-            filter: `feedName = "${feedName}"`,
-          }
-        : {}),
-    });
+  try {
+    const result = await pb
+      .collection("articles")
+      .getList<PocketBaseArticle>(1, 30, {
+        sort: "-pubDate",
+        ...(feedName
+          ? {
+              filter: `feedName = "${feedName}"`,
+            }
+          : {}),
+      });
 
-  return result.items.map((article) => ({
-    title: article.title,
-    link: article.link,
-    pubDate: article.pubDate,
-    creator: article.feedName,
-    contentSnippet: article.content
-      ? article.content.slice(0, 200)
-      : "",
-    categories: article.feedName
-      ? [article.feedName]
-      : [],
-    imageUrl: article.imageUrl,
-  }));
+    const articles = result.items.map((article) => ({
+      title: article.title,
+      link: article.link,
+      pubDate: article.pubDate,
+      creator: article.feedName,
+      contentSnippet: article.content
+        ? article.content.slice(0, 200)
+        : "",
+      categories: article.feedName
+        ? [article.feedName]
+        : [],
+      imageUrl: article.imageUrl,
+    }));
+
+    return {
+      articles,
+      unavailable: false,
+    };
+  } catch (error) {
+    console.error("Failed to fetch articles from PocketBase:", error);
+
+    return {
+      articles: [],
+      unavailable: true,
+    };
+  }
 }
