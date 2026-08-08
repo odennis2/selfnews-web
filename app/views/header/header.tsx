@@ -26,12 +26,7 @@ export function Header() {
             <Button variant="ghost" size="sm">
               <Link to="/content">Content</Link>
             </Button>
-            <Button variant="ghost" size="sm">
-              About
-            </Button>
           </nav>
-
-          <Button variant="outline">Sign In</Button>
         </div>
       </header>
     </div>
