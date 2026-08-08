@@ -1,66 +1,85 @@
-import PocketBase from "pocketbase";
+import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseServerClient } from "~/utils/supabase.server";
 import type { Article } from "~/model/article";
 
-interface PocketBaseArticle {
-  id: string;
+export interface SupabaseArticle {
+  id?: string | number;
   title: string;
   link: string;
-  content: string;
-  imageUrl: string;
-  feedName: string;
-  pubDate: string;
-  created: string;
-  updated: string;
+  content: string | null;
+  imageUrl: string | null;
+  feedName: string | null;
+  pubDate: string | null;
 }
 
-function createPocketBase() {
-  const pb = new PocketBase(
-    process.env.POCKETBASE_URL ?? "http://127.0.0.1:8090",
-  );
+function getSupabaseClient(request?: Request) {
+  if (request) {
+    return createSupabaseServerClient(request).supabase;
+  }
 
-  pb.autoCancellation(false);
+  const supabaseUrl =
+    process.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    "";
+  const supabaseKey =
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    "";
 
-  return pb;
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Missing Supabase URL or Key in environment configuration.");
+  }
+
+  return createSupabaseJsClient(supabaseUrl, supabaseKey);
 }
 
-export async function getArticles(feedName?: string): Promise<{
+export async function getArticles(
+  feedName?: string,
+  request?: Request
+): Promise<{
   articles: Article[];
   unavailable: boolean;
 }> {
-  const pb = createPocketBase();
-
   try {
-    const result = await pb
-      .collection("articles")
-      .getList<PocketBaseArticle>(1, 30, {
-        sort: "-pubDate",
-        ...(feedName
-          ? {
-              filter: `feedName = "${feedName}"`,
-            }
-          : {}),
-      });
+    const supabase = getSupabaseClient(request);
 
-    const articles = result.items.map((article) => ({
-      title: article.title,
-      link: article.link,
-      pubDate: article.pubDate,
-      creator: article.feedName,
-      contentSnippet: article.content
-        ? article.content.slice(0, 200)
-        : "",
-      categories: article.feedName
-        ? [article.feedName]
-        : [],
-      imageUrl: article.imageUrl,
-    }));
+    let query = supabase
+      .from("articles")
+      .select("title, link, pubDate, feedName, content, imageUrl")
+      .order("pubDate", { ascending: false })
+      .limit(30);
+
+    if (feedName) {
+      query = query.eq("feedName", feedName);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    const articles: Article[] = ((data as SupabaseArticle[]) || []).map(
+      (article) => ({
+        title: article.title,
+        link: article.link,
+        pubDate: article.pubDate ?? undefined,
+        creator: article.feedName ?? undefined,
+        contentSnippet: article.content
+          ? article.content.slice(0, 200)
+          : "",
+        categories: article.feedName ? [article.feedName] : [],
+        imageUrl: article.imageUrl ?? undefined,
+      })
+    );
 
     return {
       articles,
       unavailable: false,
     };
   } catch (error) {
-    console.error("Failed to fetch articles from PocketBase:", error);
+    console.error("Failed to fetch articles from Supabase:", error);
 
     return {
       articles: [],

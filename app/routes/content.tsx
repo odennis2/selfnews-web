@@ -22,12 +22,14 @@ import type { Route } from "./+types/content";
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const feed = url.searchParams.get("feed");
+  const selectedFeed = feed && feed !== "all" ? feed : undefined;
 
-  return getArticles(
-    feed && feed !== "all"
-      ? feed
-      : undefined,
-  );
+  const result = await getArticles(selectedFeed, request);
+
+  return {
+    ...result,
+    selectedFeed,
+  };
 }
 
 export function ErrorBoundary({
