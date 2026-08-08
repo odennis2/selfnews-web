@@ -1,89 +1,55 @@
-import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
-import { createClient as createSupabaseServerClient } from "~/utils/supabase.server";
+import { createClient, createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 import type { Article } from "~/model/article";
 
-export interface SupabaseArticle {
-  id?: string | number;
+interface SupabaseArticle {
+  id: string;
   title: string;
   link: string;
   content: string | null;
   imageUrl: string | null;
   feedName: string | null;
-  pubDate: string | null;
-}
-
-function getSupabaseClient(request?: Request) {
-  if (request) {
-    return createSupabaseServerClient(request).supabase;
-  }
-
-  const supabaseUrl =
-    process.env.VITE_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    "";
-  const supabaseKey =
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    "";
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Missing Supabase URL or Key in environment configuration.");
-  }
-
-  return createSupabaseJsClient(supabaseUrl, supabaseKey);
+  pubDate: string;
+  created_at: string;
 }
 
 export async function getArticles(
-  feedName?: string,
-  request?: Request
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  feedName?: string
 ): Promise<{
   articles: Article[];
   unavailable: boolean;
 }> {
-  try {
-    const supabase = getSupabaseClient(request);
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+  try {
     let query = supabase
       .from("articles")
-      .select("title, link, pubDate, feedName, content, imageUrl")
-      .order("pubDate", { ascending: false })
-      .limit(30);
+      .select("*");
 
     if (feedName) {
       query = query.eq("feedName", feedName);
     }
 
-    const { data, error } = await query;
+    const { data, error } = await query
+      .order("pubDate", { ascending: false })
+      .limit(30);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    const articles: Article[] = ((data as SupabaseArticle[]) || []).map(
-      (article) => ({
-        title: article.title,
-        link: article.link,
-        pubDate: article.pubDate ?? undefined,
-        creator: article.feedName ?? undefined,
-        contentSnippet: article.content
-          ? article.content.slice(0, 200)
-          : "",
-        categories: article.feedName ? [article.feedName] : [],
-        imageUrl: article.imageUrl ?? undefined,
-      })
-    );
+    const articles = (data as SupabaseArticle[]).map((article) => ({
+      title: article.title || "Untitled",
+      link: article.link,
+      pubDate: article.pubDate,
+      creator: article.feedName || "Unknown",
+      contentSnippet: article.content ? article.content.slice(0, 200) : "",
+      categories: article.feedName ? [article.feedName] : [],
+      imageUrl: article.imageUrl || "",
+    }));
 
-    return {
-      articles,
-      unavailable: false,
-    };
+    return { articles, unavailable: false };
   } catch (error) {
     console.error("Failed to fetch articles from Supabase:", error);
-
-    return {
-      articles: [],
-      unavailable: true,
-    };
+    return { articles: [], unavailable: true };
   }
 }

@@ -4,14 +4,7 @@ import {
   mainFeeds,
   regionalFeeds,
 } from "~/constants/feeds";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "components/ui/dropdown-menu";
+import type { LoaderFunctionArgs } from "react-router";
 
 import { Button } from "components/ui/button";
 import { cn } from "lib/utils";
@@ -19,12 +12,21 @@ import { cn } from "lib/utils";
 import { useSearchParams } from "react-router";
 import type { Route } from "./+types/content";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const env = (context?.env ?? process.env) as {
+    SUPABASE_URL: string;
+    SUPABASE_ANON_KEY: string;
+  };
+
   const url = new URL(request.url);
   const feed = url.searchParams.get("feed");
   const selectedFeed = feed && feed !== "all" ? feed : undefined;
 
-  const result = await getArticles(selectedFeed, request);
+  const result = await getArticles(
+    env.SUPABASE_URL,
+    env.SUPABASE_ANON_KEY,
+    selectedFeed
+  );
 
   return {
     ...result,
