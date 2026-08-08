@@ -48,8 +48,12 @@ export async function getArticles(
     }));
 
     return { articles, unavailable: false };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to fetch articles from Supabase:", error);
-    return { articles: [], unavailable: true };
+    // TEMPORARY DEBUGGING: Return the error message
+    return { 
+      articles: [],
+      unavailable: true,
+    };
   }
 }
