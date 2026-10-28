@@ -3,6 +3,10 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/ibm-plex-sans";
 
+@source "../components";
+@source "../lib";
+@source "../hooks";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -74,7 +78,7 @@ body {
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.966 0.005 106.5);
-  --muted-foreground: oklch(0.58 0.031 107.3);
+  --muted-foreground: oklch(0.465 0.031 107.3);
   --accent: oklch(0.966 0.005 106.5);
   --accent-foreground: oklch(0.228 0.013 107.4);
   --destructive: oklch(0.577 0.245 27.325);
@@ -144,4 +148,45 @@ body {
   html {
     @apply font-sans;
   }
+}
+
+/* SelfNews design tokens (one-motif direction) */
+
+:root {
+  /* The wire stripe: a ticker band of alternating ink/paper bars. */
+  --stripe-height: 36px;
+}
+
+/* Entrance reveal: one orchestrated load sequence, staggered.
+   Content stays visible when JS fails; the animation only runs
+   when .js-armed is set and motion is allowed. */
+@media (prefers-reduced-motion: no-preference) {
+  .js-armed .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    animation: reveal-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(var(--reveal-order, 0) * 90ms);
+  }
+
+  @keyframes reveal-rise {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* The wire stripe: a ticker band of alternating ink/paper bars,
+   equal widths, dense enough to read as one band (the blueprint's awning). */
+.wire-stripe {
+  display: flex;
+  height: var(--stripe-height, 36px);
+}
+
+.wire-stripe > span {
+  flex: 1 1 0;
+}
+
+.wire-stripe > span:nth-child(odd) {
+  background: var(--foreground);
 }

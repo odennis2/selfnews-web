@@ -7,7 +7,6 @@ export default function Layout() {
       <Header />
       <main className="bg-muted">
         <Outlet />
-      </main>
-    </div>
+      </main>    </div>
   );
 }

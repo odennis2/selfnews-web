@@ -7,6 +7,9 @@
 /.react-router/
 /build/
 
+# Taste-skill design review artifacts
+.taste-skill/
+
 # Cloudflare
 .mf
 .wrangler

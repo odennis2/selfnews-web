@@ -1,34 +1,43 @@
-import { Button } from "components/ui/button";
+import { buttonVariants } from "components/ui/button";
 import { RiShining2Fill } from "@remixicon/react";
-import { Link, NavLink, Router } from "react-router";
+import { Link, NavLink } from "react-router";
+import { cn } from "lib/utils";
 
-function ContentNav() {}
+const navItems = [
+  { to: "/", label: "Home", end: true },
+  { to: "/content", label: "Content" },
+];
 
 export function Header() {
   return (
-    <div>
-      {/* Header */}
-      <header className="w-full border-b bg-background">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
-          <NavLink to="/">
-            <a className="flex items-center gap-2">
-              <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-full">
-                <RiShining2Fill className="size-4" />
-              </div>
-              <span className="text-lg font-semibold">SelfNews</span>
-            </a>
-          </NavLink>
+    <header className="bg-background">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+        <Link to="/" className="flex items-center gap-2.5">
+          <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-full">
+            <RiShining2Fill className="size-4" />
+          </div>
+          <span className="text-lg font-semibold">SelfNews</span>
+        </Link>
 
-          <nav className="hidden items-center gap-1 sm:flex">
-            <Button variant="ghost" size="sm">
-              <Link to="/">Home</Link>
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Link to="/content">Content</Link>
-            </Button>
-          </nav>
-        </div>
-      </header>
-    </div>
+        <nav className="flex items-center gap-1">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                cn(
+                  buttonVariants({ variant: "ghost", size: "sm" }),
+                  "text-[13px]",
+                  isActive && "bg-accent text-accent-foreground",
+                )
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+    </header>
   );
 }
