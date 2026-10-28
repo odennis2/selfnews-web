@@ -8,12 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "components/ui/card";
-import { NavLink } from "react-router";
+import { cn } from "lib/utils";
 
 export interface ContentCardProps {
   title: string;
   description: string;
-  imageUrl: string;
+  imageUrl?: string;
   link: string;
   badge?: string;
 }
@@ -26,28 +26,65 @@ export default function ContentCard({
   badge,
 }: ContentCardProps) {
   return (
-    <Card className="relative mx-auto w-full max-w-sm pt-0">
-      <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
-      <img
-        src={imageUrl}
-        alt={title}
-        className="relative z-20 aspect-video w-full object-cover brightness-60 grayscale dark:brightness-40"
-      />
-      <CardHeader>
+    <Card className="h-full pt-0">
+      <a
+        href={link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt=""
+            loading="lazy"
+            className="aspect-video w-full object-cover"
+          />
+        ) : (
+          <div className="bg-muted flex aspect-video w-full items-center justify-center">
+            <span className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
+              SelfNews
+            </span>
+          </div>
+        )}
+      </a>
+
+      <CardHeader className="flex-1">
         {badge && (
           <CardAction>
             <Badge variant="secondary">{badge}</Badge>
           </CardAction>
         )}
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardTitle>
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {title}
+          </a>
+        </CardTitle>
+        <CardDescription className="line-clamp-3">
+          {description}
+        </CardDescription>
       </CardHeader>
-      <CardFooter>
-        <NavLink to={link} target="_blank" rel="noopener noreferrer">
-            <Button variant="Ghost" className="w-full" asChild>
-                View Article
-            </Button> 
-        </NavLink>
+
+      <CardFooter className="mt-auto border-t">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full"
+          render={
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          }
+        >
+          View Article
+        </Button>
       </CardFooter>
     </Card>
   );
