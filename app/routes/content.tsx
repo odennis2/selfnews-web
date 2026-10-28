@@ -1,4 +1,3 @@
-import ContentCard from "~/views/content-card/contentCard";
 import { Skeleton } from "components/ui/skeleton";
 import { Button } from "components/ui/button";
 import {
@@ -13,11 +12,9 @@ import {
 import { cn } from "lib/utils";
 import { RiRefreshLine } from "@remixicon/react";
 
-import {
-  mainFeeds,
-  regionalFeeds,
-} from "~/constants/feeds";
+import { mainFeeds, regionalFeeds } from "~/constants/feeds";
 import { getArticles } from "~/services/articles.server";
+import { wireStamp } from "~/utils/wire";
 import {
   useLoaderData,
   useNavigation,
@@ -33,8 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const url = new URL(request.url);
   const feed = url.searchParams.get("feed");
-  const selectedFeed =
-    feed && feed !== "all" ? feed : undefined;
+  const selectedFeed = feed && feed !== "all" ? feed : undefined;
 
   const result = await getArticles(
     env.SUPABASE_URL,
@@ -53,26 +49,21 @@ export function meta({}: Route.MetaArgs) {
     { title: "Content — SelfNews" },
     {
       name: "description",
-      content: "Browse the latest news picked for you",
+      content: "Vælg sektion og læs de nyeste artikler fra DRs live-tråd.",
     },
   ];
 }
 
-export function ErrorBoundary({
-  error,
-}: Route.ErrorBoundaryProps) {
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   console.error(error);
 
   return (
     <div className="flex min-h-100 items-center justify-center p-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">
-          Noget gik galt
-        </h1>
+        <h1 className="text-2xl font-bold">Noget gik galt</h1>
 
-        <p className="mt-2 text-muted-foreground">
-          Vi kunne ikke indlæse nyhederne. Prøv at
-          genindlæse siden.
+        <p className="text-muted-foreground mt-2">
+          Vi kunne ikke indlæse nyhederne. Prøv at genindlæse siden.
         </p>
       </div>
     </div>
@@ -86,8 +77,7 @@ export default function Content() {
     useLoaderData<typeof loader>();
 
   const navigation = useNavigation();
-  const [searchParams, setSearchParams] =
-    useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isLoading =
     navigation.state === "loading" &&
@@ -95,42 +85,34 @@ export default function Content() {
 
   const isRegionalSelected =
     selectedFeed !== undefined &&
-    (regionalFeeds as readonly string[]).includes(
-      selectedFeed
-    );
+    (regionalFeeds as readonly string[]).includes(selectedFeed);
 
   const selectedRegionalFeed = isRegionalSelected
     ? selectedFeed
     : REGIONAL_VALUE;
 
   function selectFeed(feed: string) {
-    if (feed === "all") {
-      setSearchParams({}, { preventScrollReset: false });
-      return;
-    }
-
-    setSearchParams({ feed });
+    setSearchParams(
+      feed === "all" ? {} : { feed },
+      { preventScrollReset: true },
+    );
   }
 
-  function selectRegionalFeed(
-    feed: string | null
-  ) {
-    if (!feed || feed === REGIONAL_VALUE)
-      return;
+  function selectRegionalFeed(feed: string | null) {
+    if (!feed || feed === REGIONAL_VALUE) return;
     selectFeed(feed);
   }
 
   if (unavailable) {
     return (
-      <div className="p-6">
-        <div className="mx-auto max-w-2xl py-24 text-center">
-          <h1 className="text-2xl font-bold">
-            Nyhederne er ikke tilgængelige
+      <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <div className="max-w-md py-24">
+          <h1 className="text-2xl font-semibold">
+            Tråden kunne ikke hentes
           </h1>
 
-          <p className="text-muted-foreground mt-2">
-            Vi kunne ikke hente artiklerne lige nu.
-            Prøv igen om lidt.
+          <p className="text-muted-foreground mt-2 leading-relaxed">
+            Artiklerne kunne ikke hentes. Prøv igen om lidt.
           </p>
 
           <Button
@@ -147,83 +129,78 @@ export default function Content() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        {/* Page header */}
-        <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-wider uppercase sm:text-3xl">
-            Content
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {isLoading
-              ? "Henter artikler…"
-              : `${articles.length} artikler${
-                  selectedFeed
-                    ? ` i ${selectedFeed}`
-                    : " fra alle kilder"
-                }`}
-          </p>
-        </div>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+      {/* Title row: the screen's one question, answer beside it */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Content</h1>
 
-        {/* Feed navigation */}
-        <div className="flex w-full flex-wrap items-center justify-between gap-3">
-          <nav
-            aria-label="Vælg nyhedsfeed"
-            className="flex flex-1 flex-wrap items-center gap-2"
+        <p
+          className={cn(
+            "text-[13px] text-muted-foreground tabular-nums",
+            isLoading && "opacity-60",
+          )}
+        >
+          {isLoading
+            ? "Henter …"
+            : `${articles.length} artikler${selectedFeed ? ` i ${selectedFeed}` : ""}`}
+        </p>
+      </div>
+
+      {/* Section rail + list */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[220px_1fr]">
+        {/* Rail: the reader's own tabs */}
+        <nav
+          aria-label="Nyhedssektioner"
+          className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => selectFeed("all")}
+            aria-pressed={!selectedFeed}
+            className={cn(
+              "shrink-0 justify-start lg:w-full",
+              !selectedFeed && "bg-foreground text-background hover:bg-foreground hover:text-background",
+            )}
           >
+            Alle
+          </Button>
+
+          {mainFeeds.map((feed) => (
             <Button
+              key={feed}
               variant="outline"
               size="sm"
-              onClick={() => selectFeed("all")}
-              aria-pressed={!selectedFeed}
+              onClick={() => selectFeed(feed)}
+              aria-pressed={selectedFeed === feed}
               className={cn(
-                "rounded-full",
-                !selectedFeed &&
-                  "bg-primary text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground",
-                isLoading && "opacity-60"
+                "shrink-0 justify-start lg:w-full",
+                selectedFeed === feed &&
+                  "bg-foreground text-background hover:bg-foreground hover:text-background",
               )}
             >
-              Alle
+              {feed}
             </Button>
+          ))}
 
-            {mainFeeds.map((feed) => (
-              <Button
-                key={feed}
-                variant="outline"
-                size="sm"
-                onClick={() => selectFeed(feed)}
-                aria-pressed={selectedFeed === feed}
-                className={cn(
-                  "rounded-full",
-                  selectedFeed === feed &&
-                    "bg-primary text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground",
-                  isLoading && "opacity-60"
-                )}
-              >
-                {feed}
-              </Button>
-            ))}
-          </nav>
-
-          {/* Regional feeds dropdown */}
+          {/* Regional feeds fold into the rail */}
           <Select
             value={selectedRegionalFeed}
             onValueChange={selectRegionalFeed}
           >
             <SelectTrigger
               size="sm"
-              aria-label="Regionale nyhedsfeeds"
+              aria-label="Regionale nyhedssektioner"
               className={cn(
-                "rounded-full border px-3",
+                "mt-1 w-fit shrink-0 border px-4 lg:w-full",
                 isRegionalSelected &&
-                  "border-primary text-primary",
-                isLoading && "opacity-60"
+                  "border-foreground text-foreground",
               )}
             >
               <SelectValue placeholder="Regionale" />
             </SelectTrigger>
 
-            <SelectContent align="end">
+            <SelectContent align="start">
               <SelectGroup>
                 <SelectLabel>Regionale</SelectLabel>
 
@@ -235,57 +212,82 @@ export default function Content() {
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
+        </nav>
 
-        {/* Article grid / loading skeletons */}
+        {/* The list: alternating tone bands, time on its fixed column */}
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 9 }).map((_, i) => (
+          <div className="space-y-1">
+            {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="bg-card space-y-4 p-0 shadow-sm ring-1 ring-foreground/5"
+                className="bg-background flex items-center gap-4 p-5"
               >
-                <Skeleton className="aspect-video w-full rounded-none" />
-
-                <div className="space-y-2.5 px-6 pb-6">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                </div>
+                <Skeleton className="h-3.5 w-10" />
+                <Skeleton className="h-4 w-full max-w-xl" />
               </div>
             ))}
           </div>
         ) : articles.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {articles.map((article) => (
-              <ContentCard
-                key={article.link}
-                title={article.title}
-                description={
-                  article.contentSnippet ?? ""
-                }
-                imageUrl={article.imageUrl}
-                link={article.link}
-                badge={article.categories?.[0]}
-              />
-            ))}
-          </div>
-        ) : (
-          /* Empty state */
-          <div className="py-24 text-center">
-            <p className="text-lg font-semibold">
-              Ingen artikler fundet
-            </p>
+          <ul className="space-y-1">
+            {articles.map((article, index) => {
+              const stamp = wireStamp(article.pubDate);
 
-            <p className="text-muted-foreground mt-1 text-sm">
-              Der er endnu ingen artikler i dette
-              feed.
+              return (
+                <li key={article.link}>
+                  <a
+                    href={article.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "group grid grid-cols-[56px_1fr_auto] items-baseline gap-x-4 p-5 sm:grid-cols-[64px_1fr_auto]",
+                      index % 2 === 0
+                        ? "bg-background"
+                        : "bg-background/60",
+                      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                    )}
+                  >
+                    <time
+                      className="text-primary text-[13px] font-medium tabular-nums"
+                      dateTime={article.pubDate}
+                    >
+                      {stamp ?? "—"}
+                    </time>
+
+                    <span className="min-w-0">
+                      <span className="group-hover:text-primary transition-colors block truncate leading-snug sm:whitespace-normal">
+                        {article.title}
+                      </span>
+
+                      {article.contentSnippet && (
+                        <span className="text-muted-foreground mt-1 hidden truncate text-[13px] leading-relaxed sm:block">
+                          {article.contentSnippet}
+                        </span>
+                      )}
+                    </span>
+
+                    {article.categories?.[0] && (
+                      <span className="text-muted-foreground hidden shrink-0 text-[13px] md:block">
+                        {article.categories[0]}
+                      </span>
+                    )}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          /* Empty state keeps its frame */
+          <div className="bg-background p-10 text-center">
+            <p className="font-medium">Ingen artikler i denne sektion</p>
+
+            <p className="text-muted-foreground mt-1 text-[13px]">
+              Tråden har ikke slået noget op endnu.
             </p>
 
             <Button
               variant="outline"
               size="sm"
-              className="mt-6"
+              className="mt-5"
               onClick={() => selectFeed("all")}
             >
               Se alle nyheder
